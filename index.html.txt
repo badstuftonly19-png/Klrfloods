@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบติดตามและแจ้งเตือนสถานการณ์น้ำท่วม บ้านคลอแระ หมู่ 3</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Prompt) -->
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'sans-serif'],
+                    },
+                    colors: {
+                        app: {
+                            bg: '#EBF1F7',
+                            navy: '#0B2B4C',
+                            cardBg: '#0F3B66',
+                            accentGreen: '#10B981',
+                            accentYellow: '#F59E0B',
+                            accentRed: '#EF4444',
+                            accentPurple: '#9333EA',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #EBF1F7;
+            padding-bottom: 90px;
+        }
+        
+        .hero-card {
+            background: linear-gradient(165deg, #0F3C68 0%, #082442 100%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-subcard {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Vertical Water Gauge styling */
+        .gauge-container {
+            width: 54px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column-reverse;
+            padding: 3px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .gauge-ticks {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 8px 4px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .gauge-tick-line {
+            width: 100%;
+            height: 1px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.4);
+        }
+
+        .gauge-fill {
+            width: 100%;
+            border-radius: 10px;
+            transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease;
+        }
+
+        .pulse-sos {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+            animation: pulse-sos-anim 1.8s infinite;
+        }
+        @keyframes pulse-sos-anim {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        .flood-logo-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .flood-logo-ring {
+            position: absolute;
+            inset: -3px;
+            border-radius: 9999px;
+            background: linear-gradient(135deg, #0284c7, #06b6d4, #3b82f6);
+            animation: flood-pulse 2s infinite ease-in-out;
+        }
+        @keyframes flood-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.08); opacity: 1; }
+        }
+
+        /* Custom Scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen">
+
+    <!-- TOP MOBILE APP HEADER -->
+    <header class="bg-white sticky top-0 z-40 shadow-sm border-b border-slate-200/80 px-4 py-2.5">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <!-- Village Logo Badge -->
+                <div class="flood-logo-wrapper w-11 h-11 flex-shrink-0">
+                    <div class="flood-logo-ring"></div>
+                    <div class="w-10 h-10 rounded-full bg-blue-950 relative z-10 p-0.5 shadow-md overflow-hidden border border-blue-200 flex items-center justify-center">
+                        <i class="fa-solid fa-house-tsunami text-cyan-400 text-lg"></i>
+                        <div class="absolute bottom-0 inset-x-0 bg-blue-600/90 py-0.5 text-center flex items-center justify-center">
+                            <i class="fa-solid fa-water text-[7px] text-white animate-bounce"></i>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-slate-900 text-sm leading-tight flex items-center gap-1">
+                        บ้านคลอแระ <span class="text-[10px] px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded-md font-bold">หมู่ 3</span>
+                    </h1>
+                    <p class="text-[10px] text-slate-500 font-medium">ต.บาเระใต้ อ.บาเจาะ จ.นราธิวาส</p>
+                </div>
+            </div>
+
+            <!-- Dynamic Header Status Capsule & Officer Toggle -->
+            <div class="flex items-center gap-1.5">
+                <button onclick="toggleRescueOfficerMode()" id="officer-mode-btn" class="px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 flex items-center gap-1 transition">
+                    <i class="fa-solid fa-user-shield text-blue-600"></i>
+                    <span id="officer-btn-text">เจ้าหน้าที่</span>
+                </button>
+                <div id="header-status-badge" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200">
+                    <span id="header-status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="header-status-text">ปกติ</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- RESCUE OFFICER CONTROL PANEL (Hidden by Default) -->
+    <div id="officer-panel" class="max-w-md mx-auto px-3 pt-2.5 hidden">
+        <div class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white p-3.5 rounded-2xl border border-amber-400/50 shadow-md space-y-2.5">
+            <div class="flex items-center justify-between border-b border-white/10 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
+                    <h3 class="font-extrabold text-xs text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-sliders"></i> แผงควบคุมเจ้าหน้าที่ / ทีมกู้ภัย
+                    </h3>
+                </div>
+                <span class="text-[9px] bg-amber-500/20 text-amber-200 px-2 py-0.5 rounded-md font-mono border border-amber-400/30">AUTHORIZED</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <button onclick="quickUpdateStatusPrompt()" class="p-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow transition">
+                    <i class="fa-solid fa-gauge-high"></i> เปลี่ยนระดับเตือนภัย
+                </button>
+                <button onclick="openEvacueeModal()" class="p-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl font-bold flex items-center justify-center gap-1.5 shadow transition">
+                    <i class="fa-solid fa-user-plus"></i> ลงทะเบียนผู้อพยพ
+                </button>
+            </div>
+
+            <!-- New Announcement Control Box for Officers -->
+            <div class="pt-2 border-t border-white/10 text-xs space-y-1.5">
+                <label class="block font-bold text-amber-300 text-[11px] flex items-center justify-between">
+                    <span><i class="fa-solid fa-bullhorn mr-1"></i> โพสต์ประกาศข่าวด่วนถึงชาวบ้าน:</span>
+                    <button onclick="clearAnnouncement()" class="text-[10px] text-red-300 hover:underline">ลบประกาศปัจจุบัน</button>
+                </label>
+                <div class="flex gap-1.5">
+                    <input type="text" id="officer-announcement-input" placeholder="พิมพ์ข้อความประกาศ..." class="flex-1 p-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-[11px] focus:outline-none focus:border-amber-400">
+                    <button onclick="publishAnnouncement()" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold rounded-xl transition whitespace-nowrap">
+                        ส่งประกาศ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messenger Link Config Box for Rescue Team -->
+            <div class="pt-2 border-t border-white/10 text-xs space-y-1.5">
+                <label class="block font-bold text-amber-300 text-[11px] flex items-center gap-1">
+                    <i class="fa-brands fa-facebook-messenger"></i> ลิงก์ตรง Messenger ทีมกู้ภัย (m.me link):
+                </label>
+                <div class="flex gap-1.5">
+                    <input type="url" id="config-messenger-url" placeholder="https://m.me/your_page_id" class="flex-1 p-2 rounded-xl bg-slate-800 border border-slate-700 text-white text-[11px] focus:outline-none focus:border-amber-400">
+                    <button onclick="saveRescueMessengerLink()" class="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold rounded-xl transition whitespace-nowrap">
+                        บันทึก
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="max-w-md mx-auto px-3 pt-3 space-y-3.5">
+
+        <!-- OFFICIAL ANNOUNCEMENT BANNER (Dynamic) -->
+        <div id="announcement-banner" class="bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 p-3 rounded-2xl shadow-md flex items-start gap-3 border border-amber-400/40 hidden">
+            <div class="w-8 h-8 rounded-xl bg-slate-950/20 flex items-center justify-center flex-shrink-0 text-slate-950 text-base mt-0.5">
+                <i class="fa-solid fa-bullhorn animate-bounce"></i>
+            </div>
+            <div class="flex-1 text-xs">
+                <div class="flex items-center justify-between font-extrabold text-[11px] uppercase tracking-wider text-slate-900 mb-0.5">
+                    <span>📢 ประกาศสำคัญจากเจ้าหน้าที่</span>
+                    <span id="announcement-time" class="text-[9px] opacity-80 font-mono">เมื่อสักครู่</span>
+                </div>
+                <p id="announcement-text" class="font-bold text-slate-950 leading-tight">
+                    -
+                </p>
+            </div>
+        </div>
+
+        <!-- HERO STATUS DASHBOARD CARD -->
+        <section class="hero-card rounded-3xl p-4 sm:p-5 text-white shadow-xl relative overflow-hidden">
+            
+            <!-- System Official Tag & Live Time -->
+            <div class="flex items-center justify-between mb-2">
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full glass-subcard text-[11px] text-slate-200">
+                    <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+                    <span>ศูนย์อุทกวิทยาชุมชนบ้านคลอแระ</span>
+                </div>
+                <span id="live-time-str" class="text-[10px] text-blue-200/90 font-mono">
+                    <i class="fa-regular fa-clock mr-0.5"></i> อัปเดตล่าสุดวันนี้
+                </span>
+            </div>
+
+            <p class="text-xs text-blue-200/80 font-medium">สถานการณ์น้ำปัจจุบัน หมู่บ้านคลอแระ</p>
+
+            <!-- Status Text + Vertical Water Meter Gauge Grid -->
+            <div class="flex items-start justify-between my-2">
+                <div class="space-y-2 flex-1 pr-2">
+                    <h2 id="hero-status-title" class="text-4xl font-extrabold text-emerald-400 tracking-tight transition-all">ปกติ</h2>
+                    
+                    <div class="glass-subcard px-3 py-2 rounded-2xl inline-block max-w-[210px]">
+                        <span id="hero-level-tag" class="inline-block px-2 py-0.5 rounded-md bg-emerald-500 text-white text-[10px] font-bold mb-1">
+                            ระดับ 1/4
+                        </span>
+                        <p id="hero-status-subdesc" class="text-xs font-semibold text-white leading-tight">
+                            ติดตามข่าวสารตามปกติ
+                        </p>
+                    </div>
+
+                    <p id="hero-status-detail" class="text-[11px] text-blue-100/80 pt-1 leading-snug">
+                        ระดับน้ำในลำคลองทั้ง 3 จุดอยู่ในเกณฑ์ปกติ สภาพอากาศแจ่มใส
+                    </p>
+                </div>
+
+                <!-- Vertical Gauge Meter UI -->
+                <div class="flex flex-col items-center">
+                    <div class="gauge-container">
+                        <div class="gauge-ticks">
+                            <span class="text-[8px] text-white font-mono font-bold">2.8m</span>
+                            <div class="gauge-tick-line"></div>
+                            <span class="text-[8px] text-slate-300 font-mono">1.5m</span>
+                            <div class="gauge-tick-line"></div>
+                            <span class="text-[8px] text-slate-300 font-mono">0.0m</span>
+                        </div>
+                        <div id="vertical-gauge-fill" class="gauge-fill bg-emerald-500" style="height: 35%;"></div>
+                    </div>
+                    <span id="gauge-percent-text" class="text-[10px] font-bold text-slate-300 font-mono mt-1">35%</span>
+                </div>
+            </div>
+
+            <!-- 3 Mini Stats Cards Grid -->
+            <div class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-white/10">
+                <div class="glass-subcard p-2.5 rounded-2xl text-left">
+                    <p class="text-[10px] text-blue-200/70 leading-none">จุดวัดหลัก</p>
+                    <p id="stat-canal-name" class="text-xs font-bold text-white mt-1.5 truncate">คลองอาโลฯ</p>
+                    <p id="stat-canal-val" class="text-[11px] text-emerald-400 font-semibold mt-0.5">ปกติ (1.2m)</p>
+                </div>
+
+                <div class="glass-subcard p-2.5 rounded-2xl text-left">
+                    <p class="text-[10px] text-blue-200/70 leading-none">โซนต้องระวัง</p>
+                    <p id="stat-risk-zones" class="text-sm font-extrabold text-white mt-1">0 <span class="text-[10px] font-normal text-blue-200/70">/8 โซน</span></p>
+                    <p id="stat-risk-households" class="text-[10px] text-blue-200/70 truncate">0 ครัวเรือน</p>
+                </div>
+
+                <div class="glass-subcard p-2.5 rounded-2xl text-left">
+                    <p class="text-[10px] text-blue-200/70 leading-none">ฝนสะสมวันนี้</p>
+                    <p id="stat-rain-val" class="text-sm font-extrabold text-white mt-1">12 <span class="text-[10px] font-normal text-blue-200/70">มม.</span></p>
+                    <p id="stat-rain-desc" class="text-[10px] text-blue-200/70 truncate">ฝนตกเล็กน้อย</p>
+                </div>
+            </div>
+
+            <!-- Red SOS Emergency Action Button -->
+            <div class="mt-4">
+                <button onclick="openSosModal()" class="w-full pulse-sos bg-gradient-to-r from-red-500 via-red-600 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white p-3.5 rounded-2xl shadow-lg flex items-center justify-between transition transform active:scale-95">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-xl flex-shrink-0">
+                            <i class="fa-solid fa-life-ring animate-spin" style="animation-duration: 8s;"></i>
+                        </div>
+                        <div class="text-left">
+                            <h3 class="font-extrabold text-base leading-tight">ขอความช่วยเหลือฉุกเฉิน (SOS)</h3>
+                            <p class="text-[11px] text-red-100/90 font-normal">ทีมกู้ภัยและจิตอาสาเยาวชนรับเรื่อง 24 ชม.</p>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-white/80 text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Secondary Quick Action Buttons -->
+            <div class="grid grid-cols-2 gap-2 mt-2.5">
+                <button onclick="switchBottomTab('overview')" class="glass-subcard hover:bg-white/15 active:scale-95 text-white py-2.5 px-3 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-water text-blue-300"></i> สถานการณ์น้ำ 3 คลอง
+                </button>
+                <button onclick="switchBottomTab('shelter')" class="glass-subcard hover:bg-white/15 active:scale-95 text-white py-2.5 px-3 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-house-chimney-user text-emerald-300"></i> ศูนย์อพยพ / รายชื่อ
+                </button>
+            </div>
+        </section>
+
+        <!-- 4 WARNING LEVEL SELECTOR CARDS -->
+        <section class="space-y-2">
+            <h3 class="text-xs font-bold text-slate-500 px-1 uppercase tracking-wider flex items-center justify-between">
+                <span>ระดับการแจ้งเตือน 4 ขั้น (คลิกเพื่อทดสอบ/เปลี่ยนสถิติ)</span>
+                <i class="fa-solid fa-hand-pointer text-slate-400"></i>
+            </h3>
+            
+            <div class="grid grid-cols-2 gap-2">
+                <!-- Level 1 -->
+                <div id="btn-lvl-1" onclick="setSimLevel('normal')" class="cursor-pointer bg-white p-3 rounded-2xl border-2 border-emerald-400 shadow-sm flex items-start gap-2.5 hover:bg-emerald-50/50 transition active:scale-95">
+                    <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow">1</div>
+                    <div>
+                        <h4 class="font-bold text-xs text-emerald-700">1. ปกติ</h4>
+                        <p class="text-[10px] text-slate-500 leading-tight">ติดตามข่าวสารตามปกติ</p>
+                    </div>
+                </div>
+
+                <!-- Level 2 -->
+                <div id="btn-lvl-2" onclick="setSimLevel('warning')" class="cursor-pointer bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-2.5 hover:bg-amber-50/50 transition active:scale-95">
+                    <div class="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow">2</div>
+                    <div>
+                        <h4 class="font-bold text-xs text-amber-700">2. เฝ้าระวัง</h4>
+                        <p class="text-[10px] text-slate-500 leading-tight">ยกของขึ้นที่สูง เตรียมพร้อม</p>
+                    </div>
+                </div>
+
+                <!-- Level 3 -->
+                <div id="btn-lvl-3" onclick="setSimLevel('danger')" class="cursor-pointer bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-2.5 hover:bg-red-50/50 transition active:scale-95">
+                    <div class="w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow">3</div>
+                    <div>
+                        <h4 class="font-bold text-xs text-red-700">3. อันตราย</h4>
+                        <p class="text-[10px] text-slate-500 leading-tight">น้ำเริ่มเข้าบ้าน อพยพคนชรา</p>
+                    </div>
+                </div>
+
+                <!-- Level 4 -->
+                <div id="btn-lvl-4" onclick="setSimLevel('critical')" class="cursor-pointer bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-2.5 hover:bg-purple-50/50 transition active:scale-95">
+                    <div class="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs flex-shrink-0 shadow">4</div>
+                    <div>
+                        <h4 class="font-bold text-xs text-purple-700">4. วิกฤต</h4>
+                        <p class="text-[10px] text-slate-500 leading-tight">ตัดไฟฟ้า อพยพทันทีตามแผน</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- DYNAMIC TAB PANES CONTAINER -->
+
+        <!-- TAB 1: OVERVIEW & CANAL MONITORING -->
+        <div id="tab-overview" class="tab-pane space-y-3">
+            
+            <!-- Canals Status Header & Details -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-water text-blue-600"></i> ระดับน้ำ 3 คลองสำคัญประจำหมู่บ้าน
+                    </h3>
+                    <span class="text-[10px] text-slate-400 font-mono">อัปเดตเรียลไทม์</span>
+                </div>
+
+    <!-- OFFICER LOGIN MODAL POPUP -->
+    <div id="officer-login-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-3.5 relative">
+            <button onclick="closeOfficerLoginModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-xl mx-auto mb-1">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h3 class="font-extrabold text-slate-900 text-base">เข้าสู่โหมดเจ้าหน้าที่ / กู้ภัย</h3>
+                <p class="text-xs text-slate-500">กรุณากรอกรหัสผ่านเพื่อเข้าถึงแผงควบคุม</p>
+            </div>
+
+            <form onsubmit="submitOfficerLogin(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">รหัสผ่านเจ้าหน้าที่ *</label>
+                    <input type="password" id="officer-pin-input" required placeholder="กรอกรหัสผ่านเจ้าหน้าที่" class="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:border-amber-500 text-center text-base tracking-widest font-mono">
+                </div>
+                <p id="officer-login-error" class="text-red-500 text-[11px] text-center font-semibold hidden">
+                    <i class="fa-solid fa-circle-exclamation"></i> รหัสผ่านไม่ถูกต้อง! กรุณาลองใหม่อีกครั้ง
+                </p>
+                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold py-2.5 rounded-xl shadow transition text-sm">
+                    ยืนยันเข้าสู่ระบบ
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SOS EMERGENCY MODAL POPUP -->
+    <div id="sos-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-3.5 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeSosModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="text-center">
+                <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-1 pulse-sos">
+                    <i class="fa-solid fa-truck-medical"></i>
+                </div>
+                <h3 class="font-extrabold text-slate-900 text-base">แจ้งขอความช่วยเหลือฉุกเฉิน (SOS)</h3>
+                <p class="text-xs text-slate-500">ข้อมูลจะคัดลอกและส่งตรงเข้า **ทีมกู้ภัยบ้านคลอแระ** ทันที</p>
+            </div>
+
+            <!-- Urgent Phone Box inside Modal -->
+            <div class="p-2.5 bg-red-50 border border-red-200 rounded-2xl space-y-1.5">
+                <p class="text-[11px] font-bold text-red-800 text-center flex items-center justify-center gap-1">
+                    <i class="fa-solid fa-phone-volume animate-bounce"></i> กรณีเร่งด่วนที่สุด! โทรสายตรงกู้ภัย 24 ชม.
+                </p>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <a href="tel:0886822347" class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-center font-bold flex items-center justify-center gap-1 shadow">
+                        <i class="fa-solid fa-phone"></i> แบลี
+                    </a>
+                    <a href="tel:0621891711" class="p-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-center font-bold flex items-center justify-center gap-1 shadow">
+                        <i class="fa-solid fa-phone"></i> นัสรี
+                    </a>
+                </div>
+            </div>
+
+            <form onsubmit="handleSosSubmit(event)" class="space-y-2.5 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ชื่อ-นามสกุล ผู้ขอความช่วยเหลือ *</label>
+                    <input type="text" id="sos-name" required placeholder="เช่น อับดุลเลาะห์ สุไลมาน" class="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">เบอร์โทรศัพท์ติดต่อกลับ *</label>
+                    <input type="tel" id="sos-phone" required placeholder="08X-XXX-XXXX" class="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">โซน / จุดสังเกตที่อยู่ *</label>
+                    <select id="sos-address" required class="w-full p-2.5 border border-slate-300 rounded-xl bg-white font-medium mb-1.5 focus:outline-none focus:border-red-500">
+                        <option value="โซน 1 คลอแระมัสยิดกลาง">โซน 1 คลอแระมัสยิดกลาง</option>
+                        <option value="โซน 2 ฆือลองไอมูรา">โซน 2 ฆือลองไอมูรา</option>
+                        <option value="โซน 3 ฆือแล">โซน 3 ฆือแล</option>
+                        <option value="โซน 4 เขตปอเนาะฆือแล">โซน 4 เขตปอเนาะฆือแล</option>
+                        <option value="โซน 5 จาแบปะ">โซน 5 จาแบปะ</option>
+                        <option value="โซน 6 โตะเมาะ">โซน 6 โตะเมาะ</option>
+                        <option value="โซน 7 เขตกูวิง">โซน 7 เขตกูวิง</option>
+                        <option value="โซน 8 ถนนสายบ้านผู้ใหญ่">โซน 8 ถนนสายบ้านผู้ใหญ่</option>
+                    </select>
+                    <input type="text" id="sos-detail-loc" placeholder="จุดสังเกต เช่น ใกล้ร้านค้ากูวิง / บ้านหลังสีขาว" class="w-full p-2.5 border border-slate-300 rounded-xl focus:outline-none focus:border-red-500">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">สิ่งที่ต้องการความช่วยเหลือ *</label>
+                    <select id="sos-type" class="w-full p-2.5 border border-slate-300 rounded-xl bg-white font-medium focus:outline-none focus:border-red-500">
+                        <option value="ยกของขึ้นที่สูง / ย้ายสิ่งของ">ยกของขึ้นที่สูง / ย้ายสิ่งของ</option>
+                        <option value="ต้องการอพยพคนชรา / เด็ก / ผู้ป่วย">ต้องการอพยพคนชรา / เด็ก / ผู้ป่วย</option>
+                        <option value="ต้องการเรือรับส่ง">ต้องการเรือรับส่ง</option>
+                        <option value="ต้องการอาหาร / น้ำดื่ม / ถุงยังชีพ">ต้องการอาหาร / น้ำดื่ม / ถุงยังชีพ</option>
+                        <option value="เจ็บป่วยฉุกเฉิน">เจ็บป่วยฉุกเฉิน</option>
+                    </select>
+                </div>
+
+                <!-- GPS Location Button -->
+                <div class="pt-1">
+                    <button type="button" onclick="getCurrentLocation('sos-coords-text', 'sos-lat', 'sos-lng')" class="w-full bg-slate-100 border border-slate-300 hover:bg-slate-200 text-slate-700 py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-bold transition">
+                        <i class="fa-solid fa-location-crosshairs text-blue-600"></i>
+                        <span id="sos-coords-text">กดเพื่อระบุพิกัด GPS เรียลไทม์</span>
+                    </button>
+                    <input type="hidden" id="sos-lat">
+                    <input type="hidden" id="sos-lng">
+                </div>
+
+                <button type="submit" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-extrabold py-3 rounded-xl shadow-lg transition text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i> ส่งสัญญาณแจ้ง SOS
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- EVACUEE REGISTRATION MODAL POPUP -->
+    <div id="evacuee-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-3.5 relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeEvacueeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="text-center">
+                <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xl mx-auto mb-1">
+                    <i class="fa-solid fa-user-plus"></i>
+                </div>
+                <h3 class="font-extrabold text-slate-900 text-base">ลงทะเบียนผู้อพยพเข้าศูนย์</h3>
+                <p class="text-xs text-slate-500">สำหรับเจ้าหน้าที่ / ผู้ดูแลศูนย์อพยพลงบันทึก</p>
+            </div>
+
+            <form onsubmit="handleEvacueeSubmit(event)" class="space-y-2.5 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ศูนย์อพยพที่เข้าพัก *</label>
+                    <select id="evac-shelter" required class="w-full p-2.5 border border-slate-300 rounded-xl bg-white font-medium">
+                        <option value="โรงเรียนบ้านคลอแระ (ศูนย์หลัก)">โรงเรียนบ้านคลอแระ (ศูนย์หลัก)</option>
+                        <option value="ปอเนาะฆือแล">ปอเนาะฆือแล</option>
+                        <option value="โรงเรียนตาดีกาบ้านคลอแระ">โรงเรียนตาดีกาบ้านคลอแระ</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">ชื่อ-นามสกุล ผู้อพยพ *</label>
+                    <input type="text" id="evac-name" required placeholder="เช่น นายมาหะมะ ยูโซ๊ะ" class="w-full p-2.5 border border-slate-300 rounded-xl">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">อายุ (ปี)</label>
+                        <input type="number" id="evac-age" placeholder="เช่น 45" class="w-full p-2.5 border border-slate-300 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">กลุ่มเปราะบาง</label>
+                        <select id="evac-group" class="w-full p-2.5 border border-slate-300 rounded-xl bg-white font-medium">
+                            <option value="ทั่วไป">ทั่วไป</option>
+                            <option value="ผู้สูงอายุ">ผู้สูงอายุ</option>
+                            <option value="เด็ก">เด็ก</option>
+                            <option value="ผู้ป่วย/ผู้พิการ">ผู้ป่วย / ผู้พิการ</option>
+                            <option value="หญิงตั้งครรภ์">หญิงตั้งครรภ์</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">มาจากโซน *</label>
+                        <select id="evac-zone" required class="w-full p-2.5 border border-slate-300 rounded-xl bg-white font-medium">
+                            <option value="โซน 1 คลอแระมัสยิดกลาง">โซน 1 มัสยิดกลาง</option>
+                            <option value="โซน 2 ฆือลองไอมูรา">โซน 2 ฆือลองไอมูรา</option>
+                            <option value="โซน 3 ฆือแล">โซน 3 ฆือแล</option>
+                            <option value="โซน 4 เขตปอเนาะฆือแล">โซน 4 ปอเนาะฆือแล</option>
+                            <option value="โซน 5 จาแบปะ">โซน 5 จาแบปะ</option>
+                            <option value="โซน 6 โตะเมาะ">โซน 6 โตะเมาะ</option>
+                            <option value="โซน 7 เขตกูวิง">โซน 7 เขตกูวิง</option>
+                            <option value="โซน 8 ถนนสายบ้านผู้ใหญ่">โซน 8 สายบ้านผู้ใหญ่</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">เลขห้อง / จุดนอน</label>
+                        <input type="text" id="evac-room" placeholder="เช่น อาคาร 1 ห้อง 2" class="w-full p-2.5 border border-slate-300 rounded-xl">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">เบอร์โทรศัพท์ติดต่อ (หรือของญาติ) *</label>
+                    <input type="tel" id="evac-phone" required placeholder="08X-XXX-XXXX" class="w-full p-2.5 border border-slate-300 rounded-xl">
+                </div>
+
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2.5 rounded-xl shadow transition text-sm">
+                    <i class="fa-solid fa-check-circle mr-1"></i> บันทึกข้อมูลผู้อพยพ
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- BOTTOM APP NAVIGATION BAR -->
+    <nav class="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 z-40 px-3 py-1.5 shadow-lg">
+        <div class="max-w-md mx-auto flex items-center justify-around text-center">
+            
+            <!-- Tab 1: ภาพรวม -->
+            <button onclick="switchBottomTab('overview')" id="nav-btn-overview" class="nav-btn flex flex-col items-center justify-center w-14 py-1 text-blue-600">
+                <i class="fa-solid fa-chart-pie text-lg"></i>
+                <span class="text-[10px] font-bold mt-0.5">ภาพรวม</span>
+            </button>
+
+            <!-- Tab 2: แผนที่ -->
+            <button onclick="switchBottomTab('map')" id="nav-btn-map" class="nav-btn flex flex-col items-center justify-center w-14 py-1 text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-map-location-dot text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">แผนที่</span>
+            </button>
+
+            <!-- Center Floating SOS Button -->
+            <div class="relative -top-5">
+                <button onclick="openSosModal()" class="w-13 h-13 rounded-full bg-gradient-to-tr from-red-600 to-rose-500 text-white flex flex-col items-center justify-center shadow-lg pulse-sos border-4 border-white transition transform active:scale-90">
+                    <i class="fa-solid fa-life-ring text-xl"></i>
+                </button>
+                <span class="block text-[10px] font-extrabold text-red-600 mt-0.5 text-center">แจ้ง SOS</span>
+            </div>
+
+            <!-- Tab 3: ศูนย์อพยพ -->
+            <button onclick="switchBottomTab('shelter')" id="nav-btn-shelter" class="nav-btn flex flex-col items-center justify-center w-14 py-1 text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-house-chimney-window text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">ศูนย์อพยพ</span>
+            </button>
+
+            <!-- Tab 4: โทรด่วน -->
+            <button onclick="switchBottomTab('contacts')" id="nav-btn-contacts" class="nav-btn flex flex-col items-center justify-center w-14 py-1 text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-phone text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">โทรด่วน</span>
+            </button>
+
+        </div>
+    </nav>
+
+    <!-- COMPLETE JAVASCRIPT LOGIC -->
+    <script>
+        // State variables
+        let isOfficerLoggedIn = false;
+        let currentAlertLevel = "normal";
+        let rescueMessengerLink = "https://m.me/klr.rescue"; // Default rescue Messenger link
+
+        // Initialize on page load
+        window.onload = function() {
+            setSimLevel('normal');
+            updateLiveTime();
+        };
+
+        // Announcement Functions
+        function publishAnnouncement() {
+            const textInput = document.getElementById('officer-announcement-input');
+            const message = textInput.value.trim();
+
+            if (!message) {
+                alert("กรุณากรอกข้อความประกาศก่อนกดส่ง");
+                return;
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+            document.getElementById('announcement-text').innerText = message;
+            document.getElementById('announcement-time').innerText = `อัปเดต ${timeStr} น.`;
+            document.getElementById('announcement-banner').classList.remove('hidden');
+
+            textInput.value = '';
+            alert("ประกาศข่าวสารสำคัญเรียบร้อยแล้ว!");
+        }
+
+        function clearAnnouncement() {
+            if (confirm("คุณต้องการลบประกาศปัจจุบันใช่หรือไม่?")) {
+                document.getElementById('announcement-banner').classList.add('hidden');
+                document.getElementById('announcement-text').innerText = '-';
+            }
+        }
+
+        function updateLiveTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('live-time-str').innerHTML = `<i class="fa-regular fa-clock mr-0.5"></i> วันนี้ ${timeStr} น.`;
+        }
+
+        // Toggle Officer Control Mode & Modal
+        function toggleRescueOfficerMode() {
+            if (!isOfficerLoggedIn) {
+                openOfficerLoginModal();
+            } else {
+                if (confirm("ต้องการออกจากโหมดเจ้าหน้าที่ใช่หรือไม่?")) {
+                    isOfficerLoggedIn = false;
+                    document.getElementById('officer-panel').classList.add('hidden');
+                    document.getElementById('officer-btn-text').innerText = "เจ้าหน้าที่";
+                    document.getElementById('officer-mode-btn').className = "px-2.5 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 flex items-center gap-1 transition";
+                }
+            }
+        }
+
+        function openOfficerLoginModal() {
+            document.getElementById('officer-pin-input').value = '';
+            document.getElementById('officer-login-error').classList.add('hidden');
+            document.getElementById('officer-login-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('officer-pin-input').focus(), 100);
+        }
+
+        function closeOfficerLoginModal() {
+            document.getElementById('officer-login-modal').classList.add('hidden');
+        }
+
+        function submitOfficerLogin(e) {
+            e.preventDefault();
+            const pin = document.getElementById('officer-pin-input').value;
+            if (pin === "klrteam1234") {
+                isOfficerLoggedIn = true;
+                closeOfficerLoginModal();
+                document.getElementById('officer-panel').classList.remove('hidden');
+                document.getElementById('officer-btn-text').innerText = "เจ้าหน้าที่ ✓";
+                document.getElementById('officer-mode-btn').className = "px-2.5 py-1 rounded-full bg-amber-500 text-white text-xs font-bold border border-amber-600 flex items-center gap-1 shadow-sm";
+                document.getElementById('config-messenger-url').value = rescueMessengerLink;
+            } else {
+                document.getElementById('officer-login-error').classList.remove('hidden');
+            }
+        }
+
+        function saveRescueMessengerLink() {
+            const urlInput = document.getElementById('config-messenger-url').value;
+            if (urlInput && urlInput.trim() !== '') {
+                rescueMessengerLink = urlInput.trim();
+                alert('บันทึกลิงก์ Messenger ทีมกู้ภัยเรียบร้อยแล้ว!');
+            }
+        }
+
+        function quickUpdateStatusPrompt() {
+            const choice = prompt("เลือกระดับเตือนภัย:\n1 = ปกติ\n2 = เฝ้าระวัง\n3 = อันตราย\n4 = วิกฤต");
+            if (choice === "1") setSimLevel('normal');
+            else if (choice === "2") setSimLevel('warning');
+            else if (choice === "3") setSimLevel('danger');
+            else if (choice === "4") setSimLevel('critical');
+        }
+
+        // Switch Bottom Navigation Tabs
+        function switchBottomTab(tabName) {
+            const panes = document.querySelectorAll('.tab-pane');
+            panes.forEach(p => p.classList.add('hidden'));
+
+            const targetPane = document.getElementById('tab-' + tabName);
+            if (targetPane) targetPane.classList.remove('hidden');
+
+            const navBtns = document.querySelectorAll('.nav-btn');
+            navBtns.forEach(btn => {
+                btn.className = "nav-btn flex flex-col items-center justify-center w-14 py-1 text-slate-400 hover:text-slate-600";
+            });
+
+            const activeNav = document.getElementById('nav-btn-' + tabName);
+            if (activeNav) {
+                activeNav.className = "nav-btn flex flex-col items-center justify-center w-14 py-1 text-blue-600 font-bold";
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Level Simulator Handler
+        function setSimLevel(level) {
+            currentAlertLevel = level;
+            
+            const title = document.getElementById('hero-status-title');
+            const subdesc = document.getElementById('hero-status-subdesc');
+            const detail = document.getElementById('hero-status-detail');
+            const levelTag = document.getElementById('hero-level-tag');
+            const gaugeFill = document.getElementById('vertical-gauge-fill');
+            const gaugePercent = document.getElementById('gauge-percent-text');
+            const headerBadge = document.getElementById('header-status-badge');
+            const headerText = document.getElementById('header-status-text');
+            const headerDot = document.getElementById('header-status-dot');
+
+            const statCanal = document.getElementById('stat-canal-val');
+            const statRiskZones = document.getElementById('stat-risk-zones');
+            const statRiskHouseholds = document.getElementById('stat-risk-households');
+
+            // Reset Card Borders
+            ['btn-lvl-1', 'btn-lvl-2', 'btn-lvl-3', 'btn-lvl-4'].forEach(id => {
+                document.getElementById(id).className = "cursor-pointer bg-white p-3 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-2.5 hover:bg-slate-50 transition active:scale-95";
+            });
+
+            if (level === 'normal') {
+                title.innerText = "ปกติ";
+                title.className = "text-4xl font-extrabold text-emerald-400 tracking-tight transition-all";
+                levelTag.innerText = "ระดับ 1/4";
+                levelTag.className = "inline-block px-2 py-0.5 rounded-md bg-emerald-500 text-white text-[10px] font-bold mb-1";
+                subdesc.innerText = "ติดตามข่าวสารตามปกติ";
+                detail.innerText = "ระดับน้ำในลำคลองทั้ง 3 จุดอยู่ในเกณฑ์ปกติ สภาพอากาศแจ่มใส";
+                gaugeFill.style.height = "35%";
+                gaugeFill.className = "gauge-fill bg-emerald-500";
+                gaugePercent.innerText = "35%";
+
+                headerBadge.className = "flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200";
+                headerText.innerText = "ปกติ";
+                headerDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+
+                statCanal.innerText = "ปกติ (1.2m)";
+                statCanal.className = "text-[11px] text-emerald-400 font-semibold mt-0.5";
+                statRiskZones.innerHTML = `0 <span class="text-[10px] font-normal text-blue-200/70">/8 โซน</span>`;
+                statRiskHouseholds.innerText = "0 ครัวเรือน";
+
+                document.getElementById('btn-lvl-1').className = "cursor-pointer bg-white p-3 rounded-2xl border-2 border-emerald-500 shadow-sm flex items-start gap-2.5 hover:bg-emerald-50 transition active:scale-95";
+            }
+            else if (level === 'warning') {
+                title.innerText = "เฝ้าระวัง";
+                title.className = "text-4xl font-extrabold text-amber-400 tracking-tight transition-all";
+                levelTag.innerText = "ระดับ 2/4";
+                levelTag.className = "inline-block px-2 py-0.5 rounded-md bg-amber-500 text-white text-[10px] font-bold mb-1";
+                subdesc.innerText = "ยกของขึ้นที่สูง เตรียมพร้อม";
+                detail.innerText = "ระดับน้ำคลองจาแบปะเริ่มเอ่อล้นถนนในพื้นที่ลุ่มต่ำ ขอให้ยกของขึ้นที่สูง";
+                gaugeFill.style.height = "60%";
+                gaugeFill.className = "gauge-fill bg-amber-500";
+                gaugePercent.innerText = "60%";
+
+                headerBadge.className = "flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-200";
+                headerText.innerText = "เฝ้าระวัง";
+                headerDot.className = "w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse";
+
+                statCanal.innerText = "เฝ้าระวัง (1.9m)";
+                statCanal.className = "text-[11px] text-amber-400 font-semibold mt-0.5";
+                statRiskZones.innerHTML = `2 <span class="text-[10px] font-normal text-blue-200/70">/8 โซน</span>`;
+                statRiskHouseholds.innerText = "15 ครัวเรือน";
+
+                document.getElementById('btn-lvl-2').className = "cursor-pointer bg-white p-3 rounded-2xl border-2 border-amber-500 shadow-sm flex items-start gap-2.5 hover:bg-amber-50 transition active:scale-95";
+            }
+            else if (level === 'danger') {
+                title.innerText = "อันตราย";
+                title.className = "text-4xl font-extrabold text-red-400 tracking-tight transition-all";
+                levelTag.innerText = "ระดับ 3/4";
+                levelTag.className = "inline-block px-2 py-0.5 rounded-md bg-red-500 text-white text-[10px] font-bold mb-1";
+                subdesc.innerText = "น้ำเริ่มเข้าบ้าน อพยพคนชรา";
+                detail.innerText = "น้ำท่วมสูง 20-40 ซม. ในหลายโซน เคลื่อนย้ายเด็ก/คนชราไปศูนย์อพยพทันที";
+                gaugeFill.style.height = "85%";
+                gaugeFill.className = "gauge-fill bg-red-500";
+                gaugePercent.innerText = "85%";
+
+                headerBadge.className = "flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-bold border border-red-200";
+                headerText.innerText = "อันตราย";
+                headerDot.className = "w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse";
+
+                statCanal.innerText = "อันตราย (2.5m)";
+                statCanal.className = "text-[11px] text-red-400 font-semibold mt-0.5";
+                statRiskZones.innerHTML = `5 <span class="text-[10px] font-normal text-blue-200/70">/8 โซน</span>`;
+                statRiskHouseholds.innerText = "48 ครัวเรือน";
+
+                document.getElementById('btn-lvl-3').className = "cursor-pointer bg-white p-3 rounded-2xl border-2 border-red-500 shadow-sm flex items-start gap-2.5 hover:bg-red-50 transition active:scale-95";
+            }
+            else if (level === 'critical') {
+                title.innerText = "วิกฤต";
+                title.className = "text-4xl font-extrabold text-purple-400 tracking-tight transition-all animate-pulse";
+                levelTag.innerText = "ระดับ 4/4";
+                levelTag.className = "inline-block px-2 py-0.5 rounded-md bg-purple-600 text-white text-[10px] font-bold mb-1";
+                subdesc.innerText = "ตัดไฟฟ้า อพยพทันทีตามแผน";
+                detail.innerText = "ระดับน้ำล้นตลิ่งทุกจุด อพยพชาวบ้านทุกคนออกจากพื้นที่เสี่ยงทันที";
+                gaugeFill.style.height = "100%";
+                gaugeFill.className = "gauge-fill bg-purple-600";
+                gaugePercent.innerText = "100%";
+
+                headerBadge.className = "flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-xs font-bold border border-purple-200";
+                headerText.innerText = "วิกฤต";
+                headerDot.className = "w-2.5 h-2.5 rounded-full bg-purple-600 animate-ping";
+
+                statCanal.innerText = "วิกฤต (>2.8m)";
+                statCanal.className = "text-[11px] text-purple-400 font-semibold mt-0.5";
+                statRiskZones.innerHTML = `8 <span class="text-[10px] font-normal text-blue-200/70">/8 โซน</span>`;
+                statRiskHouseholds.innerText = "ทุกครัวเรือน";
+
+                document.getElementById('btn-lvl-4').className = "cursor-pointer bg-white p-3 rounded-2xl border-2 border-purple-600 shadow-sm flex items-start gap-2.5 hover:bg-purple-50 transition active:scale-95";
+            }
+        }
+
+        // SOS Modal Control
+        function openSosModal() {
+            document.getElementById('sos-modal').classList.remove('hidden');
+        }
+
+        function closeSosModal() {
+            document.getElementById('sos-modal').classList.add('hidden');
+        }
+
+        // Get Geolocation Coordinates
+        function getCurrentLocation(textId, latId, lngId) {
+            const btnText = document.getElementById(textId);
+            btnText.innerText = "กำลังค้นหาพิกัด GPS...";
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        document.getElementById(latId).value = lat;
+                        document.getElementById(lngId).value = lng;
+                        btnText.innerText = `ดึงพิกัดสำเร็จ: ${lat.toFixed(4)}, ${lng.toFixed(4)} ✓`;
+                        btnText.parentElement.className = "w-full bg-emerald-50 border border-emerald-300 text-emerald-800 py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 font-bold transition";
+                    },
+                    (error) => {
+                        alert("ไม่สามารถเข้าถึงตำแหน่งพิกัด GPS ได้ กรุณาเปิดระบบระบุตำแหน่งของอุปกรณ์");
+                        btnText.innerText = "กดเพื่อระบุพิกัด GPS เรียลไทม์";
+                    }
+                );
+            } else {
+                alert("เบราว์เซอร์ของคุณไม่รองรับการดึงพิกัด GPS");
+                btnText.innerText = "กดเพื่อระบุพิกัด GPS เรียลไทม์";
+            }
+        }
+
+        // Handle SOS Submit
+        function handleSosSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('sos-name').value;
+            const phone = document.getElementById('sos-phone').value;
+            const zone = document.getElementById('sos-address').value;
+            const detailLoc = document.getElementById('sos-detail-loc').value;
+            const type = document.getElementById('sos-type').value;
+            const lat = document.getElementById('sos-lat').value;
+            const lng = document.getElementById('sos-lng').value;
+
+            let gpsString = "ไม่ได้แนบพิกัด GPS";
+            let googleMapsUrl = "";
+            if (lat && lng) {
+                gpsString = `${lat}, ${lng}`;
+                googleMapsUrl = `\n📍 แผนที่: https://maps.google.com/?q=${lat},${lng}`;
+            }
+
+            const messageText = `🚨 *แจ้งขอความช่วยเหลือฉุกเฉิน SOS (บ้านคลอแระ)*\n👤 ชื่อ: ${name}\n📞 เบอร์โทร: ${phone}\n📍 โซน: ${zone} (${detailLoc})\n🆘 ต้องการ: ${type}\n🌐 พิกัด GPS: ${gpsString}${googleMapsUrl}`;
+
+            // Copy SOS message to clipboard
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(messageText);
+            } else {
+                const tempInput = document.createElement("textarea");
+                tempInput.value = messageText;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand("copy");
+                document.body.removeChild(tempInput);
+            }
+
+            alert("คัดลอกข้อความ SOS พร้อมพิกัด GPS เรียบร้อยแล้ว!\nกำลังเปิด Messenger ทีมกู้ภัย...");
+            closeSosModal();
+
+            // Direct Redirect to Rescue Messenger
+            window.open(rescueMessengerLink, '_blank');
+        }
+
+        // Evacuee Modal Control
+        function openEvacueeModal() {
+            document.getElementById('evacuee-modal').classList.remove('hidden');
+        }
+
+        function closeEvacueeModal() {
+            document.getElementById('evacuee-modal').classList.add('hidden');
+        }
+
+        // Handle Evacuee Registration Submit
+        function handleEvacueeSubmit(e) {
+            e.preventDefault();
+            const shelter = document.getElementById('evac-shelter').value;
+            const name = document.getElementById('evac-name').value;
+            const age = document.getElementById('evac-age').value || '-';
+            const group = document.getElementById('evac-group').value;
+            const zone = document.getElementById('evac-zone').value;
+            const room = document.getElementById('evac-room').value || 'ไม่ระบุ';
+            const phone = document.getElementById('evac-phone').value;
+
+            const list = document.getElementById('evacuees-list');
+            
+            let groupBadgeClass = "bg-blue-100 text-blue-800";
+            if (group === "ผู้สูงอายุ") groupBadgeClass = "bg-purple-100 text-purple-800";
+            else if (group === "ผู้ป่วย/ผู้พิการ") groupBadgeClass = "bg-red-100 text-red-800";
+            else if (group === "หญิงตั้งครรภ์") groupBadgeClass = "bg-pink-100 text-pink-800";
+
+            const newCard = document.createElement('div');
+            newCard.className = "p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs flex justify-between items-center evacuee-item animate-fade-in";
+            newCard.innerHTML = `
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="font-bold text-slate-800">${name} (${age} ปี)</span>
+                        <span class="${groupBadgeClass} text-[9px] font-bold px-1.5 py-0.2 rounded">${group}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500">มาจาก: ${zone} | พักที่: ${shelter}</p>
+                    <p class="text-[10px] text-emerald-700 font-semibold">ติดต่อ: ${phone}</p>
+                </div>
+                <span class="text-[9px] bg-slate-200 text-slate-700 px-2 py-1 rounded-md font-bold whitespace-nowrap">${room}</span>
+            `;
+
+            list.insertBefore(newCard, list.firstChild);
+
+            // Update Count
+            const itemsCount = list.querySelectorAll('.evacuee-item').length;
+            document.getElementById('evacuee-count-badge').innerText = `${itemsCount} คน`;
+
+            alert("บันทึกข้อมูลผู้อพยพเรียบร้อยแล้ว!");
+            closeEvacueeModal();
+        }
+
+        // Filter/Search Evacuees List
+        function filterEvacuees() {
+            const query = document.getElementById('evacuee-search').value.toLowerCase();
+            const items = document.querySelectorAll('.evacuee-item');
+
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                if (text.includes(query)) {
+                    item.style.display = "flex";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        }
+    </script>
+</body>
+</html>
